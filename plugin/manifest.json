@@ -1,0 +1,31 @@
+{
+  "name": "Figma MCP Server",
+  "id": "1572223324912824909",
+  "api": "1.0.0",
+  "editorType": [
+    "figma"
+  ],
+  "permissions": [],
+  "main": "dist/main.js",
+  "ui": "dist/index.html",
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "http://localhost:38451/",
+      "ws://localhost:38451/",
+      "https://localhost:38451/",
+      "wss://localhost:38451/",
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:38451/",
+      "ws://localhost:38451/",
+      "https://localhost:38451/",
+      "wss://localhost:38451/",
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com"
+    ],
+    "reasoning": "This plugin needs to access the MCP server to get commands from the server."
+  }
+}
