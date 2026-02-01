@@ -125,6 +125,43 @@ export async function getServer(server: Server): Promise<McpServer> {
         description: "Model Context Protocol Server for Figma",
         version: "0.1.1",
     });
+
+    // ============================================
+    // CONNECTION STATUS TOOL (doesn't require Figma connection)
+    // ============================================
+    mcpServer.tool(
+        "check-connection",
+        "Check if the Figma plugin is connected to this MCP server. Use this first to diagnose connection issues.",
+        {},
+        async () => {
+            const isConnected = socketManager.isConnected;
+            const connectionCount = socketManager.connectionCount;
+            
+            return {
+                content: [{
+                    type: "text",
+                    text: JSON.stringify({
+                        connected: isConnected,
+                        connectionCount: connectionCount,
+                        serverPort: process.env.PORT || 38451,
+                        status: isConnected 
+                            ? `✓ Figma plugin is connected (${connectionCount} active connection${connectionCount > 1 ? 's' : ''})` 
+                            : "✗ Figma plugin is NOT connected",
+                        instructions: isConnected 
+                            ? "You can now use all Figma MCP tools."
+                            : [
+                                "To connect the Figma plugin:",
+                                "1. Open Figma desktop app",
+                                "2. Open a design file",
+                                "3. Go to Plugins > FigMCP (or run from Recent)",
+                                "4. The plugin should auto-connect to this server",
+                                `5. Make sure the plugin is connecting to port ${process.env.PORT || 38451}`
+                            ]
+                    }, null, 2)
+                }]
+            };
+        }
+    );
  
     // Register tools
 

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TaskManager } from "../../task-manager.js";
-import { safeToolProcessor } from "../utils.js";
+import { safeToolProcessor, normalizeArguments } from "../safe-tool-processor.js";
 import * as DS from "../../shared/types/params/design-system-extended/index.js";
 
 /**
@@ -28,7 +28,9 @@ export function registerDesignSystemExtendedTools(server: McpServer, taskManager
         "Generate a spacing token system based on a base unit scale.",
         DS.CreateSpacingTokensParamsSchema.shape,
         async (params: DS.CreateSpacingTokensParams) => {
-            return await safeToolProcessor(taskManager.runTask("create-spacing-tokens", params));
+            // Normalize params to fix any array-to-object conversion issues
+            const normalizedParams = normalizeArguments(params as Record<string, any>) as DS.CreateSpacingTokensParams;
+            return await safeToolProcessor(taskManager.runTask("create-spacing-tokens", normalizedParams));
         }
     );
 
@@ -38,7 +40,8 @@ export function registerDesignSystemExtendedTools(server: McpServer, taskManager
         "Create typography tokens with font families, scale, weights, and line heights.",
         DS.CreateTypographyTokensParamsSchema.shape,
         async (params: DS.CreateTypographyTokensParams) => {
-            return await safeToolProcessor(taskManager.runTask("create-typography-tokens", params));
+            const normalizedParams = normalizeArguments(params as Record<string, any>) as DS.CreateTypographyTokensParams;
+            return await safeToolProcessor(taskManager.runTask("create-typography-tokens", normalizedParams));
         }
     );
 
@@ -48,7 +51,8 @@ export function registerDesignSystemExtendedTools(server: McpServer, taskManager
         "Generate shadow/elevation tokens for depth hierarchy.",
         DS.CreateShadowTokensParamsSchema.shape,
         async (params: DS.CreateShadowTokensParams) => {
-            return await safeToolProcessor(taskManager.runTask("create-shadow-tokens", params));
+            const normalizedParams = normalizeArguments(params as Record<string, any>) as DS.CreateShadowTokensParams;
+            return await safeToolProcessor(taskManager.runTask("create-shadow-tokens", normalizedParams));
         }
     );
 
@@ -58,7 +62,8 @@ export function registerDesignSystemExtendedTools(server: McpServer, taskManager
         "Create border radius tokens for consistent corner rounding.",
         DS.CreateRadiusTokensParamsSchema.shape,
         async (params: DS.CreateRadiusTokensParams) => {
-            return await safeToolProcessor(taskManager.runTask("create-radius-tokens", params));
+            const normalizedParams = normalizeArguments(params as Record<string, any>) as DS.CreateRadiusTokensParams;
+            return await safeToolProcessor(taskManager.runTask("create-radius-tokens", normalizedParams));
         }
     );
 
@@ -68,7 +73,8 @@ export function registerDesignSystemExtendedTools(server: McpServer, taskManager
         "Generate border tokens with widths, styles, and colors.",
         DS.CreateBorderTokensParamsSchema.shape,
         async (params: DS.CreateBorderTokensParams) => {
-            return await safeToolProcessor(taskManager.runTask("create-border-tokens", params));
+            const normalizedParams = normalizeArguments(params as Record<string, any>) as DS.CreateBorderTokensParams;
+            return await safeToolProcessor(taskManager.runTask("create-border-tokens", normalizedParams));
         }
     );
 

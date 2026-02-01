@@ -2,3 +2,6 @@
 /node_modules
 /.cursor
 /mcp-all
+
+# Figma Personal Access Token - DO NOT COMMIT
+figma-token.txt

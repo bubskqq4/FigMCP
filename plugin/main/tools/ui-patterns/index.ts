@@ -1,5 +1,38 @@
 import { ToolResult } from "../tool-result";
 
+// ============================================
+// FONT CACHE - Prevents repeated font loading (major perf improvement)
+// ============================================
+const loadedFonts = new Set<string>();
+
+async function loadFontOnce(family: string, style: string): Promise<void> {
+  const key = `${family}:${style}`;
+  if (loadedFonts.has(key)) {
+    return; // Already loaded, skip
+  }
+  await figma.loadFontAsync({ family, style });
+  loadedFonts.add(key);
+}
+
+// Pre-load common fonts at module initialization
+async function preloadCommonFonts(): Promise<void> {
+  const commonStyles = ["Regular", "Medium", "Bold", "Italic"];
+  await Promise.all(
+    commonStyles.map(style => 
+      loadFontOnce("Inter", style).catch(() => {
+        // Silently fail if font not available
+      })
+    )
+  );
+}
+
+// Trigger preload (non-blocking)
+preloadCommonFonts();
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
 function hexToRgb(hex: string): RGB {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
@@ -13,13 +46,19 @@ async function createFrame(name: string, width: number, height: number, fill: st
   const frame = figma.createFrame();
   frame.name = name;
   frame.resize(width, height);
-  frame.fills = [{ type: "SOLID", color: hexToRgb(fill) }];
+  // Handle transparent fill
+  if (fill === "transparent" || fill === "") {
+    frame.fills = [];
+  } else {
+    frame.fills = [{ type: "SOLID", color: hexToRgb(fill) }];
+  }
   return frame;
 }
 
 async function createText(content: string, fontSize: number = 14, fontWeight: string = "Regular"): Promise<TextNode> {
   const text = figma.createText();
-  await figma.loadFontAsync({ family: "Inter", style: fontWeight });
+  // Use cached font loading
+  await loadFontOnce("Inter", fontWeight);
   text.fontName = { family: "Inter", style: fontWeight };
   text.fontSize = fontSize;
   text.characters = content;

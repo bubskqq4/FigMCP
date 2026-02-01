@@ -1,15 +1,23 @@
 #!/usr/bin/env node
-import { envStartSchema, type EnvStartConfig } from "./config.js";
-import { startSTDIO, cleanup as stdioCleanup } from "./stdio.js";
-import { startStreamableHTTP, cleanup as httpCleanup } from "./streamable-http.js";
-import dotenv from "dotenv";
+/**
+ * MCP Server Entry Point
+ * 
+ * CRITICAL: The preload import MUST be first to:
+ * 1. Suppress stdout pollution before STDIO transport is ready
+ * 2. Load dotenv before any modules that depend on env vars
+ */
 
-dotenv.config();
+// CRITICAL: This must be the FIRST import - sets up stdout suppression immediately
+import { waitForPreload, enableStdout } from './preload.js';
 
-const ENV: EnvStartConfig = envStartSchema.parse(process.env);
+import type { EnvStartConfig } from "./config.js";
 
 // Track which server type is running for cleanup
 let serverType: 'stdio' | 'streamable-http' | null = null;
+
+// Cleanup functions - will be populated after dynamic imports
+let stdioCleanup: (() => Promise<void>) | null = null;
+let httpCleanup: (() => Promise<void>) | null = null;
 
 /**
  * Global cleanup function that calls the appropriate cleanup based on server type
@@ -17,9 +25,9 @@ let serverType: 'stdio' | 'streamable-http' | null = null;
 async function globalCleanup(): Promise<void> {
     console.error('[MCP] Global cleanup initiated...');
     try {
-        if (serverType === 'stdio') {
+        if (serverType === 'stdio' && stdioCleanup) {
             await stdioCleanup();
-        } else if (serverType === 'streamable-http') {
+        } else if (serverType === 'streamable-http' && httpCleanup) {
             await httpCleanup();
         }
     } catch (error) {
@@ -44,6 +52,21 @@ process.on('unhandledRejection', async (reason: unknown, promise: Promise<unknow
 // Main startup
 async function main(): Promise<void> {
     try {
+        // CRITICAL: Wait for preload to complete (dotenv loaded) before importing other modules
+        await waitForPreload();
+        
+        // Dynamic imports to ensure they load AFTER preload has configured dotenv
+        const { envStartSchema } = await import('./config.js');
+        const { startSTDIO, cleanup: importedStdioCleanup } = await import('./stdio.js');
+        const { startStreamableHTTP, cleanup: importedHttpCleanup } = await import('./streamable-http.js');
+        
+        // Store cleanup functions for global cleanup handler
+        stdioCleanup = importedStdioCleanup;
+        httpCleanup = importedHttpCleanup;
+        
+        // Parse environment config
+        const ENV: EnvStartConfig = envStartSchema.parse(process.env);
+        
         console.error(`[MCP] Starting server with transport: ${ENV.TRANSPORT}`);
         
         if (ENV.TRANSPORT === "streamable-http") {
@@ -51,6 +74,15 @@ async function main(): Promise<void> {
             await startStreamableHTTP();
         } else {
             serverType = 'stdio';
+            // Enable stdout just before starting STDIO transport
+            // The STDIO transport needs stdout for JSON-RPC messages
+            enableStdout();
+            
+            // Also disable protection from entry.js wrapper if running through it
+            if (typeof (globalThis as any).__disableStdoutProtection === 'function') {
+                (globalThis as any).__disableStdoutProtection();
+            }
+            
             await startSTDIO();
         }
     } catch (error) {

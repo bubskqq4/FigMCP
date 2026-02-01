@@ -30,6 +30,11 @@ export default {
   external: [
     "content-type",
     "express",
+    "dotenv",
+    "@modelcontextprotocol/sdk",
+    "@modelcontextprotocol/sdk/server/mcp.js",
+    "@modelcontextprotocol/sdk/server/stdio.js",
+    "socket.io",
     "node:crypto",
     "node:*",
     "http",

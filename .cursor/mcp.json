@@ -3,6 +3,20 @@
     "Figma": {
       "url": "http://127.0.0.1:38450/mcp"
     },
+    "FigMCP-main Local (Bundle)": {
+      "command": "node",
+      "args": ["C:\\Users\\EthFR\\Downloads\\FigMCP-main\\FigMCP-main\\mcp\\dist\\entry.js"],
+      "env": {
+        "TRANSPORT": "stdio"
+      }
+    },
+    "FigMCP-main Local (Index)": {
+      "command": "node",
+      "args": ["C:\\Users\\EthFR\\Downloads\\FigMCP-main\\FigMCP-main\\mcp\\dist\\index.js"],
+      "env": {
+        "TRANSPORT": "stdio"
+      }
+    },
     "Figma NPM": {
       "command": "npx",
       "args": ["@antonytm/figma-mcp-server@latest"]

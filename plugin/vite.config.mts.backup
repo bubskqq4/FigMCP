@@ -1,4 +1,4 @@
-﻿import { defineConfig, Plugin } from "vite";
+import { defineConfig, Plugin } from "vite";
 import reactRefresh from "@vitejs/plugin-react-refresh";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { utimesSync } from "fs";
@@ -51,9 +51,6 @@ export default defineConfig({
   plugins: [stripUseClient(), reactRefresh(), viteSingleFile(), touchManifest()],
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: {
-      '@mui/icons-material': resolve(__dirname, 'node_modules/@mui/icons-material'),
-    },
   },
   build: {
     target: "es2017",
@@ -64,7 +61,6 @@ export default defineConfig({
     outDir: "../dist",
     commonjsOptions: {
       transformMixedEsModules: true,
-      include: [/node_modules/],
     },
     rollupOptions: {
       output: {

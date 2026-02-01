@@ -1,6 +1,6 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { getServer } from './server.js';
-import { PORT } from './config.js';
+import { getPort } from './config.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import { exec } from 'child_process';
@@ -264,7 +264,7 @@ export async function startSTDIO() {
         // Create HTTP server
         httpServer = http.createServer();
         
-        // Create Socket.IO server
+        // Create Socket.IO server with NEVER timeout settings
         socketServer = new Server(httpServer, {
             cors: {
                 origin: "*",
@@ -276,8 +276,12 @@ export async function startSTDIO() {
             allowUpgrades: true,
             cookie: false,
             serveClient: false,
-            pingTimeout: 60000,
-            pingInterval: 25000
+            // NEVER TIMEOUT - Very high values to prevent any disconnection
+            pingTimeout: 86400000,    // 24 hours - essentially never timeout
+            pingInterval: 10000,      // 10 seconds - frequent pings to keep alive
+            connectTimeout: 86400000, // 24 hours - never timeout on connect
+            // Allow larger payloads for complex Figma data
+            maxHttpBufferSize: 10e6,  // 10MB
         });
         
         // Get MCP server with tools registered
@@ -288,7 +292,8 @@ export async function startSTDIO() {
         await server.connect(transport);
         
         // Start HTTP server for Socket.IO connections from Figma plugin
-        await startHttpServer(httpServer, PORT);
+        const port = getPort();
+        await startHttpServer(httpServer, port);
         
         console.error('[MCP] STDIO server started successfully');
     } catch (error) {

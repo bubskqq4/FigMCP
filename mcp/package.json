@@ -3,9 +3,9 @@
   "mcpName": "io.github.Antonytm/figma-mcp-server",
   "version": "0.1.18",
   "description": "MCP Server for Figma",
-  "main": "./dist/bundle.js",
+  "main": "./dist/entry.js",
   "bin": {
-    "@antonytm/figma-mcp-server": "./dist/bundle.js"
+    "@antonytm/figma-mcp-server": "./dist/entry.js"
   },
   "type": "module",
   "scripts": {

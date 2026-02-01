@@ -160,12 +160,50 @@ import * as AccessibilityTools from 'tools/accessibility-tools/index';
 // Performance tools
 import * as PerformanceTools from 'tools/performance-tools/index';
 
+// Track whether pages have been loaded this session
+let pagesLoaded = false;
+let pagesLoadPromise: Promise<void> | null = null;
+
+// Commands that require fresh page data (should reload pages)
+const COMMANDS_REQUIRING_PAGE_RELOAD = new Set([
+  'get-pages',
+  'get-layer-tree',
+  'get-node-tree',
+  'list-nodes',
+  'search-nodes',
+]);
+
+// Efficiently load pages with caching
+async function ensurePagesLoaded(command: string): Promise<void> {
+  // If pages are loading, wait for that to complete
+  if (pagesLoadPromise) {
+    await pagesLoadPromise;
+    return;
+  }
+  
+  // Check if we need to reload (first time or command requires fresh data)
+  const needsReload = !pagesLoaded || COMMANDS_REQUIRING_PAGE_RELOAD.has(command);
+  
+  if (needsReload) {
+    console.log(`[Performance] Loading pages for command: ${command}`);
+    pagesLoadPromise = figma.loadAllPagesAsync();
+    try {
+      await pagesLoadPromise;
+      pagesLoaded = true;
+    } finally {
+      pagesLoadPromise = null;
+    }
+  }
+}
+
 function main() {
 
   on<StartTaskHandler>('START_TASK', async function (task: StartTaskHandler) {
     try {
       console.log('start-task', task)
-      await figma.loadAllPagesAsync();
+      
+      // Efficiently load pages with caching
+      await ensurePagesLoaded(task.command);
 
       // Activate visual feedback for create/modify operations
       const isCreatingOrModifying = isCreateOrModifyCommand(task.command);
@@ -1922,15 +1960,17 @@ function main() {
   const html = `${additionalData}${__html__}`;
   figma.showUI(`${html}`, { width: 500, height: 405 });
 
-  // Handle messages from the UI
-  figma.ui.onmessage = async (msg: { type: string; token?: string }) => {
-    if (msg.type === 'STORE_TOKEN' && msg.token) {
+  // Handle token storage messages from the UI
+  // IMPORTANT: Use 'on' from utilities instead of overwriting figma.ui.onmessage
+  // Directly assigning figma.ui.onmessage breaks @create-figma-plugin/utilities event system
+  on('STORE_TOKEN', async (msg: { token?: string }) => {
+    if (msg.token) {
       await TokenMgmtTools.storeApiToken(msg.token);
       // Notify UI that token was stored
       figma.ui.postMessage({ type: 'TOKEN_STATUS', hasToken: true });
       figma.notify('API Token saved successfully!');
     }
-  };
+  });
 
   // Check and notify UI about existing token status
   TokenMgmtTools.getStoredToken().then((token) => {

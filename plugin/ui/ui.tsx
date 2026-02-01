@@ -89,21 +89,80 @@ function Plugin(props: any) {
   }, []);
 
   useEffect(() => {
+    // Socket.IO client with robust reconnection and keep-alive settings
     const socket = io("ws://localhost:38451", {
       transports: ["websocket", "polling"],
       upgrade: true,
       rememberUpgrade: false,
+      // NEVER TIMEOUT - Robust reconnection settings
+      reconnection: true,
+      reconnectionAttempts: Infinity,    // Never stop trying to reconnect
+      reconnectionDelay: 1000,           // Start with 1 second delay
+      reconnectionDelayMax: 5000,        // Max 5 seconds between attempts
+      randomizationFactor: 0.5,          // Add some randomness to prevent thundering herd
+      timeout: 86400000,                 // 24 hours - essentially never timeout
+      autoConnect: true,
     });
+
+    // Client-side keep-alive ping every 20 seconds
+    let keepAliveInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startKeepAlive = () => {
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
+      keepAliveInterval = setInterval(() => {
+        if (socket.connected) {
+          socket.emit("keep-alive-ping", { timestamp: Date.now() });
+        }
+      }, 20000); // Every 20 seconds
+    };
+
+    const stopKeepAlive = () => {
+      if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+      }
+    };
+
     socket.on("connect", () => {
       console.log("connected to MCP server");
       addLogRef.current?.("Connected to MCP server");
       setConnected(true);
+      startKeepAlive();
     });
-    socket.on("disconnect", () => {
-      console.log("disconnected from MCP server");
-      addLogRef.current?.("Disconnected from MCP server");
+
+    socket.on("disconnect", (reason) => {
+      console.log("disconnected from MCP server:", reason);
+      addLogRef.current?.(`Disconnected from MCP server: ${reason}`);
       setConnected(false);
+      stopKeepAlive();
+      
+      // If server disconnected us, try to reconnect immediately
+      if (reason === "io server disconnect") {
+        socket.connect();
+      }
     });
+
+    socket.on("connect_error", (error) => {
+      console.log("Connection error:", error.message);
+      // Will automatically retry due to reconnection settings
+    });
+
+    socket.on("reconnect", (attemptNumber) => {
+      console.log("Reconnected after", attemptNumber, "attempts");
+      addLogRef.current?.(`Reconnected to MCP server (attempt ${attemptNumber})`);
+    });
+
+    socket.on("reconnect_attempt", (attemptNumber) => {
+      if (attemptNumber % 10 === 0) { // Log every 10th attempt to avoid spam
+        addLogRef.current?.(`Reconnecting... (attempt ${attemptNumber})`);
+      }
+    });
+
+    // Handle server keep-alive pings
+    socket.on("keep-alive-ping", (data: any) => {
+      socket.emit("keep-alive-pong", { timestamp: Date.now() });
+    });
+
     socket.on("message", (message: string) => {
       addLogRef.current?.(`Message from MCP server: ${message}`);
       console.log("message from MCP server:", message);
@@ -131,6 +190,12 @@ function Plugin(props: any) {
 
     socket.onAny((event: string, data: any) => {
     });
+
+    // Cleanup on unmount
+    return () => {
+      stopKeepAlive();
+      socket.disconnect();
+    };
   }, []);
   return (
     <MainContainer>
