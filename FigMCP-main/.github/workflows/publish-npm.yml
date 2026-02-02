@@ -1,0 +1,34 @@
+name: Publish @antonytm/figma-mcp-server to NPM registry
+on:
+  release:
+    types: [created]
+permissions:
+  id-token: write  # Required for OIDC trusted publishing
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          # Do NOT set registry-url here - it would use token auth
+          # For trusted publishing, we configure registry manually below
+      # Ensure npm 11.5.1 or later is installed for trusted publishing
+      - name: Update npm
+        run: npm install -g npm@latest
+      - name: Install dependencies  
+        working-directory: ./mcp
+        run: npm ci
+      - name: Build package
+        working-directory: ./mcp
+        run: npm run build
+      - name: Bundle package
+        working-directory: ./mcp
+        run: npm run bundle
+      - name: Publish package on NPM 📦
+        working-directory: ./mcp
+        run: npm publish

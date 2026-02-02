@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "FigMCP (Current Build)": {
+      "command": "node",
+      "args": ["C:\\Users\\EthFR\\Downloads\\FigMCP-main (1)\\FigMCP-main\\mcp\\dist\\entry.js"],
+      "env": {
+        "TRANSPORT": "stdio"
+      }
+    },
+    "FigMCP HTTP Server": {
+      "url": "http://127.0.0.1:38450/mcp"
+    },
+    "FigMCP NPM (Latest)": {
+      "command": "npx",
+      "args": ["@antonytm/figma-mcp-server@latest"]
+    }
+  }
+}
